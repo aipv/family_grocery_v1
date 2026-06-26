@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grocery List</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sage:       #6f7e5a;
+  --sage-btn:   #4a5e38;
+  --sage-hover: #3a4e28;
+  --cream:      #f4efe3;
+  --paper:      #fdfaf4;
+  --card:       #ffffff;
+  --border:     #e8dece;
+  --text:       #39492d;
+  --text-mid:   #697860;
+  --text-light: #9aaa8a;
+  --shadow:     0 8px 30px rgba(0,0,0,.07);
+  --shadow-sm:  0 2px 8px rgba(0,0,0,.06);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #ece6d8, #f5f0e5);
+  min-height: 100vh;
+  color: var(--text);
+}
+
+/* ── LAYOUT ── */
+.app {
+  max-width: 1200px;
+  margin: 32px auto;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 85vh;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.13);
+  position: relative;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: linear-gradient(170deg, #7f9068 0%, #6a7c58 55%, #8a9a78 100%);
+  padding: 32px 22px 28px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar::after {
+  content: '🌿';
+  position: absolute;
+  bottom: 60px;
+  left: -18px;
+  font-size: 9rem;
+  opacity: .08;
+  pointer-events: none;
+  transform: rotate(-20deg);
+  filter: grayscale(1);
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #f2f2ea;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 26px;
+  letter-spacing: -.01em;
+}
+
+.sidebar-logo-icon { font-size: 1.6rem; }
+
+.sidebar-all {
+  background: rgba(255,255,255,.94);
+  color: var(--text);
+  border-radius: 13px;
+  padding: 13px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-bottom: 22px;
+  font-weight: 600;
+  font-size: .93rem;
+  transition: background .15s;
+}
+
+.sidebar-all:hover { background: rgba(255,255,255,.99); }
+
+.sidebar-all .badge {
+  margin-left: auto;
+  background: var(--sage-btn);
+  color: white;
+  border-radius: 7px;
+  padding: 2px 9px;
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.sidebar-label {
+  color: rgba(255,255,255,.55);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.sidebar-cats { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+
+.sidebar-cat {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: rgba(255,255,255,.88);
+  padding: 9px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s;
+  font-size: .9rem;
+}
+
+.sidebar-cat:hover, .sidebar-cat.active { background: rgba(255,255,255,.18); }
+
+.sidebar-cat-icon { width: 20px; text-align: center; font-size: 1rem; }
+
+.sidebar-cat-count {
+  margin-left: auto;
+  background: rgba(255,255,255,.2);
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: .78rem;
+}
+
+.sidebar-add-cat {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255,255,255,.72);
+  background: rgba(255,255,255,.1);
+  border: 1.5px solid rgba(255,255,255,.22);
+  border-radius: 11px;
+  padding: 11px 14px;
+  cursor: pointer;
+  font-size: .87rem;
+  margin-top: 14px;
+  transition: background .15s;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-add-cat:hover { background: rgba(255,255,255,.18); }
+
+.sidebar-quote {
+  color: rgba(255,255,255,.65);
+  font-size: .8rem;
+  line-height: 1.75;
+  margin-top: auto;
+  padding-top: 20px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── MAIN ── */
+.main {
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.main-header {
+  padding: 36px 40px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.main-title h2 {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.main-title p { color: var(--text-light); font-size: .88rem; margin-top: 5px; }
+
+.main-icons { display: flex; gap: 8px; }
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: .95rem;
+  color: var(--text-mid);
+  transition: background .15s;
+}
+
+.icon-btn:hover { background: var(--cream); }
+
+/* Search row */
+.search-row {
+  padding: 22px 40px 0;
+  display: flex;
+  gap: 12px;
+}
+
+.search-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+
+.search-icon {
+  position: absolute;
+  left: 17px;
+  color: var(--text-light);
+  font-size: .9rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 15px 16px 15px 44px;
+  border: 1.5px solid var(--border);
+  border-radius: 13px;
+  font-size: .93rem;
+  background: var(--card);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+
+.search-input:focus { border-color: var(--sage); }
+.search-input::placeholder { color: var(--text-light); }
+
+.add-btn {
+  background: var(--sage-btn);
+  color: white;
+  border: none;
+  border-radius: 13px;
+  padding: 0 26px;
+  font-size: .93rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  transition: background .15s, transform .12s;
+}
+
+.add-btn:hover { background: var(--sage-hover); transform: translateY(-1px); }
+
+/* Filter tabs */
+.filter-tabs { padding: 18px 40px 0; display: flex; gap: 8px; }
+
+.tab {
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: .86rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-mid);
+  transition: all .15s;
+}
+
+.tab.active {
+  background: var(--sage-btn);
+  color: white;
+  border-color: var(--sage-btn);
+}
+
+.tab:not(.active):hover { background: var(--cream); }
+
+/* Items */
+.items-scroll {
+  flex: 1;
+  padding: 18px 40px 24px;
+  overflow-y: auto;
+}
+
+.item-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 9px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .15s;
+}
+
+.item-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,.09); }
+
+.item-check {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--sage);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .72rem;
+  color: white;
+  transition: all .18s;
+}
+
+.item-check.checked { background: var(--sage-btn); border-color: var(--sage-btn); }
+
+.item-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  flex-shrink: 0;
+}
+
+.item-name {
+  font-weight: 600;
+  font-size: .95rem;
+  flex: 1;
+  color: var(--text);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-row.done .item-name {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.item-amount {
+  background: #ede8de;
+  color: var(--text-mid);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: .8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cat-tag {
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: .78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.item-del {
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: .95rem;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all .15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.item-del:hover { background: #feecec; color: #c44; }
+
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+
+.empty-icon { font-size: 3rem; margin-bottom: 14px; }
+
+/* Footer */
+.main-footer {
+  text-align: center;
+  padding: 15px;
+  color: var(--text-light);
+  font-size: .82rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+/* ── ADD PANEL ── */
+.panel-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(50,60,40,.14);
+  display: none;
+  z-index: 10;
+}
+
+.panel-overlay.open { display: block; }
+
+.panel {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 340px;
+  background: white;
+  padding: 28px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: -6px 0 28px rgba(0,0,0,.1);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.panel-header h3 { flex: 1; font-size: 1.1rem; font-weight: 700; }
+
+.panel-close {
+  cursor: pointer;
+  color: var(--text-mid);
+  font-size: 1rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  transition: background .15s;
+}
+
+.panel-close:hover { background: var(--cream); }
+
+.field-label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-mid);
+  margin-bottom: 7px;
+}
+
+.field-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  font-size: .9rem;
+  color: var(--text);
+  background: var(--card);
+  outline: none;
+  transition: border-color .15s;
+  font-family: inherit;
+}
+
+.field-input:focus { border-color: var(--sage); }
+.field-input::placeholder { color: var(--text-light); }
+
+.field-select {
+  width: 100%;
+  padding: 11px 36px 11px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  font-size: .9rem;
+  color: var(--text);
+  background: var(--card);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23697860' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  transition: border-color .15s;
+}
+
+.field-select:focus { border-color: var(--sage); }
+
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.img-option {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.75rem;
+  gap: 3px;
+  transition: all .15s;
+  background: var(--paper);
+}
+
+.img-option:hover { border-color: var(--sage); background: var(--cream); }
+.img-option.selected { border-color: var(--sage-btn); background: #ecf3e5; }
+
+.img-upload { font-size: 1.3rem; color: var(--text-mid); }
+.img-upload-lbl { font-size: .62rem; color: var(--text-mid); font-weight: 500; }
+
+.view-more {
+  text-align: center;
+  color: var(--sage);
+  font-size: .82rem;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: -6px;
+}
+
+.view-more:hover { color: var(--sage-btn); }
+
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: white;
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s;
+}
+
+.cancel-btn:hover { background: var(--cream); }
+
+.submit-btn {
+  flex: 1.5;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: var(--sage-btn);
+  color: white;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s;
+}
+
+.submit-btn:hover { background: var(--sage-hover); }
+
+/* ── STATUS OVERLAYS ── */
+.status-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  gap: 12px;
+}
+
+.status-overlay.hidden { display: none; }
+
+.status-icon { font-size: 3rem; }
+.status-msg { color: var(--text-mid); font-size: .95rem; }
+.status-sub { color: var(--text-light); font-size: .82rem; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; margin: 0; border-radius: 0; min-height: 100vh; }
+  .sidebar { display: none; }
+  .main-header, .search-row, .filter-tabs { padding-left: 18px; padding-right: 18px; }
+  .items-scroll { padding: 14px 18px 20px; }
+  .panel { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- SUPABASE_URL -->
+
+<div class="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-icon">🌿</span>
+      Grocery List
+    </div>
+
+    <div class="sidebar-all" id="sidebar-all" onclick="setCatFilter(null)">
+      <span>🛒</span>
+      <span style="flex:1">All Items</span>
+      <span class="badge" id="total-badge">0</span>
+    </div>
+
+    <div class="sidebar-label">CATEGORIES</div>
+    <div class="sidebar-cats" id="sidebar-cats"></div>
+
+    <button class="sidebar-add-cat" onclick="promptAddCategory()">+ Add Category</button>
+
+    <div class="sidebar-quote">
+      <span>🌿</span>
+      Good food is the foundation of genuine happiness.
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <main class="main">
+
+    <!-- Loading / Error overlay -->
+    <div class="status-overlay" id="status-overlay">
+      <div class="status-icon" id="status-icon">🌿</div>
+      <div class="status-msg" id="status-msg">Connecting...</div>
+      <div class="status-sub" id="status-sub">Loading your grocery list</div>
+    </div>
+
+    <div class="main-header">
+      <div class="main-title">
+        <h2 id="page-title">All Items</h2>
+        <p id="page-count">0 items</p>
+      </div>
+      <div class="main-icons">
+        <div class="icon-btn" title="Sync status" id="sync-btn" onclick="reloadData()">🔄</div>
+      </div>
+    </div>
+
+    <div class="search-row">
+      <div class="search-wrap">
+        <span class="search-icon">🌿</span>
+        <input class="search-input" id="search-input" placeholder="Add a grocery item..." />
+      </div>
+      <button class="add-btn" onclick="openPanel()">+ Add Item</button>
+    </div>
+
+    <div class="filter-tabs">
+      <button class="tab active" data-f="all"    onclick="setStatusFilter('all')">All (<span id="tab-all">0</span>)</button>
+      <button class="tab"        data-f="tobuy"  onclick="setStatusFilter('tobuy')">To Buy (<span id="tab-tobuy">0</span>)</button>
+      <button class="tab"        data-f="bought" onclick="setStatusFilter('bought')">Bought (<span id="tab-bought">0</span>)</button>
+    </div>
+
+    <div class="items-scroll" id="items-list"></div>
+
+    <div class="main-footer">🌿 Eat well. Live well.</div>
+
+    <!-- ══ ADD PANEL ══ -->
+    <div class="panel-overlay" id="panel-overlay" onclick="overlayClick(event)">
+      <div class="panel" id="add-panel">
+        <div class="panel-header">
+          <span>🌿</span>
+          <h3 id="panel-title">Add New Item</h3>
+          <div class="panel-close" onclick="closePanel()">✕</div>
+        </div>
+
+        <div>
+          <label class="field-label">Item name</label>
+          <input class="field-input" id="panel-name" placeholder="e.g. Apples" />
+        </div>
+
+        <div>
+          <label class="field-label">Amount</label>
+          <input class="field-input" id="panel-amount" placeholder="e.g. 500 g, 6 pcs, 1 L" />
+        </div>
+
+        <div>
+          <label class="field-label">Category</label>
+          <select class="field-select" id="panel-cat"></select>
+        </div>
+
+        <div>
+          <label class="field-label">Image (optional)</label>
+          <div class="img-grid" id="img-grid"></div>
+          <div class="view-more" onclick="showMoreEmojis()">View more ▾</div>
+        </div>
+
+        <div class="panel-actions">
+          <button class="cancel-btn" onclick="closePanel()">Cancel</button>
+          <button class="submit-btn" id="panel-submit" onclick="submitItem()">Add Item</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const supabase = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+// ── State ──
+let items = [];
+let categories = [];
+let catFilter = null;
+let statusFilt = 'all';
+let selEmoji = '';
+let emojiPage = 0;
+let editingId = null;
+
+// ── Supabase Helpers ──
+async function fetchItems() {
+  const { data, error } = await supabase
+    .from('items')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function fetchCategories() {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name');
+  if (error) throw error;
+  return data || [];
+}
+
+async function addItem(item) {
+  const { data, error } = await supabase.from('items').insert([item]).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function updateItem(id, changes) {
+  const { data, error } = await supabase.from('items').update(changes).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function removeItem(id) {
+  const { error } = await supabase.from('items').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function upsertCategory(cat) {
+  const { data, error } = await supabase.from('categories').upsert([cat]).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ── Init ──
+function showStatus(icon, msg, sub) {
+  document.getElementById('status-overlay').classList.remove('hidden');
+  document.getElementById('status-icon').textContent = icon;
+  document.getElementById('status-msg').textContent = msg;
+  document.getElementById('status-sub').textContent = sub;
+}
+
+function hideStatus() {
+  document.getElementById('status-overlay').classList.add('hidden');
+}
+
+async function init() {
+  try {
+    showStatus('🌿', 'Connecting...', 'Loading your grocery list');
+
+    const [fetchedItems, fetchedCats] = await Promise.all([fetchItems(), fetchCategories()]);
+    items = fetchedItems;
+    categories = fetchedCats;
+
+    hideStatus();
+    render();
+  } catch (err) {
+    console.error(err);
+    showStatus('❌', 'Connection failed', 'Check your .env SUPABASE_URL and ANON_KEY — then restart server');
+  }
+}
+
+// ── Real-time Sync ──
+let realtimeChannel;
+
+function subscribeRealtime() {
+  realtimeChannel = supabase
+    .channel('items-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => {
+      reloadData();
+    })
+    .subscribe();
+}
+
+async function reloadData() {
+  try {
+    const [fetchedItems, fetchedCats] = await Promise.all([fetchItems(), fetchCategories()]);
+    items = fetchedItems;
+    categories = fetchedCats;
+    render();
+  } catch (err) {
+    console.error('Reload failed:', err);
+  }
+}
+
+// ── Render ──
+function getDisplayed() {
+  let f = catFilter ? items.filter(i => i.cat_id === catFilter) : items;
+  if (statusFilt === 'tobuy')  f = f.filter(i => !i.done);
+  if (statusFilt === 'bought') f = f.filter(i =>  i.done);
+  return f;
+}
+
+function getCat(id) {
+  return categories.find(c => c.id === id) || { name: 'Other', color: '#555', bg: '#ebebeb', icon: '📦' };
+}
+
+function render() {
+  // Sidebar
+  document.getElementById('total-badge').textContent = items.length;
+
+  const sidebarAll = document.getElementById('sidebar-all');
+  sidebarAll.style.background = catFilter ? '' : 'rgba(255,255,255,.94)';
+
+  document.getElementById('sidebar-cats').innerHTML = categories.map(cat => {
+    const n = items.filter(i => i.cat_id === cat.id).length;
+    return `<div class="sidebar-cat${catFilter===cat.id?' active':''}" onclick="setCatFilter('${cat.id}')">
+      <span class="sidebar-cat-icon">${cat.icon}</span>
+      <span style="flex:1">${cat.name}</span>
+      <span class="sidebar-cat-count">${n}</span>
+    </div>`;
+  }).join('');
+
+  // Title
+  document.getElementById('page-title').textContent = catFilter ? getCat(catFilter).name : 'All Items';
+
+  // Tab counts
+  const base   = catFilter ? items.filter(i => i.cat_id === catFilter) : items;
+  const toBuy  = base.filter(i => !i.done).length;
+  const bought = base.filter(i =>  i.done).length;
+  document.getElementById('tab-all').textContent    = base.length;
+  document.getElementById('tab-tobuy').textContent  = toBuy;
+  document.getElementById('tab-bought').textContent = bought;
+
+  // Page count
+  const disp = getDisplayed();
+  document.getElementById('page-count').textContent = `${disp.length} item${disp.length!==1?'s':''}`;
+
+  // Items
+  const list = document.getElementById('items-list');
+  if (!disp.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🛒</div><div>No items here yet</div></div>`;
+    return;
+  }
+
+  list.innerHTML = disp.map(item => {
+    const cat = getCat(item.cat_id);
+    return `<div class="item-row${item.done?' done':''}">
+      <div class="item-check${item.done?' checked':''}" onclick="toggleItem(${item.id})">${item.done?'✓':''}</div>
+      <div class="item-img">${item.emoji||'🛒'}</div>
+      <div class="item-name" onclick="editItem(${item.id})" style="cursor:pointer" title="Click to edit">${escHtml(item.name)}</div>
+      ${item.amount?`<div class="item-amount">${escHtml(item.amount)}</div>`:''}
+      <div class="cat-tag" style="color:${cat.color};background:${cat.bg}">${cat.name}</div>
+      <div class="item-del" onclick="deleteItem(${item.id})">🗑</div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Actions ──
+window.toggleItem = async function(id) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  try {
+    await updateItem(id, { done: !it.done });
+    await reloadData();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+window.deleteItem = async function(id) {
+  try {
+    await removeItem(id);
+    await reloadData();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+// ── Panel ──
+const CAT_EMOJI = {fv:'🥬',dairy:'🥛',pantry:'🫙',meat:'🍗',bev:'☕',other:'📦'};
+
+window.openPanel = function(id = null) {
+  editingId = id;
+  selEmoji  = '';
+  emojiPage = 0;
+
+  const sel = document.getElementById('panel-cat');
+  sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+
+  if (id) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      document.getElementById('panel-title').textContent = 'Edit Item';
+      document.getElementById('panel-name').value = item.name;
+      document.getElementById('panel-amount').value = item.amount || '';
+      document.getElementById('panel-cat').value = item.cat_id || 'other';
+      selEmoji = item.emoji || '';
+      document.getElementById('panel-submit').textContent = 'Save Changes';
+    }
+  } else {
+    document.getElementById('panel-title').textContent = 'Add New Item';
+    document.getElementById('panel-name').value = '';
+    document.getElementById('panel-amount').value = '';
+    if (catFilter) sel.value = catFilter;
+    document.getElementById('panel-submit').textContent = 'Add Item';
+  }
+
+  document.getElementById('panel-overlay').classList.add('open');
+  renderEmojiGrid();
+  setTimeout(() => document.getElementById('panel-name').focus(), 50);
+};
+
+window.editItem = function(id) {
+  openPanel(id);
+};
+
+window.renderEmojiGrid = function() {
+  const EMOJI_PRESETS = ['🍎','🍌','🥦','🥛','🍞','🥚','🥕','🍗','🍝','🫒','🍚','🧅','🍅','🍋','🧀','🥩','☕','🍷','🧃','🧄'];
+  const start  = emojiPage * 5;
+  const emojis = EMOJI_PRESETS.slice(start, start + 5);
+  document.getElementById('img-grid').innerHTML =
+    `<div class="img-option" onclick="selectEmoji('')">
+       <span class="img-upload">📷</span>
+       <span class="img-upload-lbl">None</span>
+     </div>` +
+    emojis.map(e =>
+      `<div class="img-option${selEmoji===e?' selected':''}" onclick="selectEmoji('${e}')">${e}</div>`
+    ).join('');
+};
+
+window.selectEmoji = function(e) {
+  selEmoji = e;
+  renderEmojiGrid();
+};
+
+window.showMoreEmojis = function() {
+  const EMOJI_PRESETS = ['🍎','🍌','🥦','🥛','🍞','🥚','🥕','🍗','🍝','🫒','🍚','🧅','🍅','🍋','🧀','🥩','☕','🍷','🧃','🧄'];
+  emojiPage = (emojiPage + 1) % Math.ceil(EMOJI_PRESETS.length / 5);
+  renderEmojiGrid();
+};
+
+window.closePanel = function() {
+  document.getElementById('panel-overlay').classList.remove('open');
+  editingId = null;
+};
+
+window.overlayClick = function(e) {
+  if (e.target === document.getElementById('panel-overlay')) closePanel();
+};
+
+window.submitItem = async function() {
+  const name = document.getElementById('panel-name').value.trim();
+  if (!name) { document.getElementById('panel-name').focus(); return; }
+  const amount = document.getElementById('panel-amount').value.trim();
+  const catId  = document.getElementById('panel-cat').value;
+  const emoji  = selEmoji || CAT_EMOJI[catId] || '🛒';
+
+  try {
+    if (editingId) {
+      await updateItem(editingId, { name, amount, cat_id: catId, emoji });
+    } else {
+      await addItem({ name, amount, cat_id: catId, emoji, done: false });
+    }
+    await reloadData();
+    closePanel();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+window.promptAddCategory = async function() {
+  const name = prompt('Category name:');
+  if (!name || !name.trim()) return;
+  const id = 'cat_' + Date.now();
+  try {
+    await upsertCategory({ id, name: name.trim(), icon: '📦', color: '#555', bg: '#ebebeb' });
+    await reloadData();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+window.setCatFilter = function(id) {
+  catFilter = id;
+  statusFilt = 'all';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab[data-f="all"]').classList.add('active');
+  render();
+};
+
+window.setStatusFilter = function(s) {
+  statusFilt = s;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-f="${s}"]`).classList.add('active');
+  render();
+};
+
+window.reloadData = reloadData;
+
+// Quick-add on Enter in search bar
+document.getElementById('search-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && this.value.trim()) {
+    openPanel();
+    document.getElementById('panel-name').value = this.value.trim();
+    this.value = '';
+  }
+});
+
+// ── Start ──
+init().then(() => subscribeRealtime());
+</script>
+
+</body>
+</html>
