@@ -1,0 +1,14 @@
+[Unit]
+Description=Family Grocery Server
+After=network.target
+
+[Service]
+Type=simple
+User=test
+WorkingDirectory=/home/test/workspace/family_grocery_v1
+ExecStart=/usr/bin/npm run dev
+Restart=always
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

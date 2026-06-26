@@ -11,7 +11,10 @@ Go to [supabase.com](https://supabase.com), create a new project.
 In Supabase dashboard → **SQL Editor** → paste the contents of `supabase/schema.sql` → **Run**.
 
 ### 3. Add your credentials
-Edit `.env`:
+```bash
+cp .env_example .env
+```
+Edit `.env` and fill in your Supabase credentials:
 ```
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_ANON_KEY=your-anon-key-here
