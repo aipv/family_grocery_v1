@@ -140,6 +140,7 @@ function mapItem(row) {
     amount:    row.amount || '',
     catId:     row.cat_id || 'other',
     emoji:     row.emoji || '',
+    photo:     row.photo || '',
     done:      row.done || false,
     createdAt: row.created_at,
   };
@@ -489,6 +490,7 @@ async function submitItem() {
     amount,
     cat_id: catId,
     emoji,
+    photo: selPhoto || '',
     done: false,
   };
   if (sb) {

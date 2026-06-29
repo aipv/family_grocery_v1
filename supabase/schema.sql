@@ -8,6 +8,7 @@ create table if not exists items (
   amount text default '',
   cat_id text default 'other',
   emoji text default '',
+  photo text default '',
   done boolean default false,
   created_at timestamptz default now()
 );
