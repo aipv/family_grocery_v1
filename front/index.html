@@ -92,6 +92,16 @@
         </div>
 
         <div>
+          <label class="field-label">Repeat</label>
+          <select class="field-select" id="panel-repeat">
+            <option value="none">One-time</option>
+            <option value="weekly">Every week</option>
+            <option value="minute">Every minute</option>
+          </select>
+          <div class="field-hint">Weekly items reappear automatically for the next week.</div>
+        </div>
+
+        <div>
           <label class="field-label">Image (optional)</label>
           <div class="img-grid" id="img-grid"></div>
           <div class="view-more" onclick="showMoreEmojis()">View more ▾</div>
@@ -138,6 +148,17 @@ const DEFAULT_ITEMS = [
 ];
 
 let items      = JSON.parse(localStorage.getItem('grocery_v2') || 'null') || DEFAULT_ITEMS;
+items = items.map(item => {
+  const repeat = item.repeat || 'none';
+  const repeatKey = item.repeatKey || (repeat === 'weekly' ? item.weekKey || getWeekKey() : repeat === 'minute' ? item.minuteKey || getMinuteKey() : null);
+  return {
+    ...item,
+    repeat,
+    repeatKey,
+    weekKey: item.weekKey || (repeat === 'weekly' ? repeatKey : null),
+    minuteKey: item.minuteKey || (repeat === 'minute' ? repeatKey : null)
+  };
+});
 let nextId     = Math.max(...items.map(i => i.id), 0) + 1;
 let catFilter  = null;
 let statusFilt = 'all';
@@ -146,6 +167,57 @@ let selPhoto   = '';
 let emojiPage  = 0;
 
 function save() { localStorage.setItem('grocery_v2', JSON.stringify(items)); }
+
+function getWeekKey(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function getMinuteKey(date = new Date()) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}-${d.getHours()}-${d.getMinutes()}`;
+}
+
+function normalizeRecurringItems() {
+  const currentWeek = getWeekKey();
+  const currentMinute = getMinuteKey();
+  const additions = [];
+
+  items.forEach(item => {
+    if (!item.repeatGroup || item.repeat === 'none') return;
+
+    const currentBucket = item.repeat === 'weekly' ? currentWeek : item.repeat === 'minute' ? currentMinute : null;
+    if (!currentBucket) return;
+
+    const existingActive = items.some(candidate =>
+      candidate.repeatGroup === item.repeatGroup &&
+      candidate.repeat === item.repeat &&
+      !candidate.done &&
+      (candidate.repeatKey || candidate.weekKey || candidate.minuteKey) === currentBucket
+    );
+
+    const alreadyHasCurrentBucket = (item.repeatKey || item.weekKey || item.minuteKey) === currentBucket;
+    if (!existingActive && !alreadyHasCurrentBucket) {
+      additions.push({
+        ...item,
+        id: nextId++,
+        done: false,
+        repeatKey: currentBucket,
+        weekKey: item.repeat === 'weekly' ? currentBucket : null,
+        minuteKey: item.repeat === 'minute' ? currentBucket : null
+      });
+    }
+  });
+
+  if (additions.length) {
+    items = [...additions, ...items];
+    save();
+  }
+}
 
 function getCat(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length-1]; }
 
@@ -172,6 +244,9 @@ function getDisplayed() {
 }
 
 function render() {
+  normalizeRecurringItems();
+  save();
+
   // Sidebar
   document.getElementById('total-badge').textContent = items.length;
 
@@ -220,6 +295,7 @@ function render() {
       <div class="item-name">${escHtml(item.name)}</div>
       ${item.amount?`<div class="item-amount">${escHtml(item.amount)}</div>`:''}
       <div class="cat-tag" style="color:${cat.color};background:${cat.bg}">${cat.name}</div>
+      ${item.repeat === 'weekly' ? '<div class="repeat-pill">Weekly</div>' : ''}
       <div class="item-del" onclick="deleteItem(${item.id})">🗑</div>
     </div>`;
   }).join('');
@@ -297,8 +373,24 @@ function submitItem() {
   if (!name) { document.getElementById('panel-name').focus(); return; }
   const amount = document.getElementById('panel-amount').value.trim();
   const catId  = document.getElementById('panel-cat').value;
+  const repeat = document.getElementById('panel-repeat').value;
   const emoji  = selEmoji || CAT_EMOJI[catId] || '🛒';
-  items.unshift({id:nextId++, name, amount, catId, emoji, photo: selPhoto||null, done:false});
+  const repeatGroup = repeat === 'none' ? null : `repeat-${Date.now()}`;
+  const repeatKey = repeat === 'weekly' ? getWeekKey() : repeat === 'minute' ? getMinuteKey() : null;
+  items.unshift({
+    id: nextId++,
+    name,
+    amount,
+    catId,
+    emoji,
+    photo: selPhoto || null,
+    done: false,
+    repeat,
+    repeatGroup,
+    repeatKey,
+    weekKey: repeat === 'weekly' ? repeatKey : null,
+    minuteKey: repeat === 'minute' ? repeatKey : null
+  });
   save(); render(); closePanel();
 }
 
@@ -338,6 +430,10 @@ document.getElementById('search-input').addEventListener('keydown', function(e) 
 });
 
 render();
+setInterval(() => {
+  normalizeRecurringItems();
+  render();
+}, 60000);
 </script>
 
 </body>

@@ -495,6 +495,22 @@ body {
 
 .field-select:focus { border-color: var(--sage); }
 
+.field-hint {
+  font-size: .74rem;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+.repeat-pill {
+  border-radius: 999px;
+  background: #eef5e4;
+  color: var(--sage-btn);
+  padding: 4px 8px;
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .img-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
