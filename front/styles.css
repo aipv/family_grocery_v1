@@ -592,7 +592,14 @@ body {
   /* Hide top inline Add button and use a FAB */
   .add-btn { display: none; }
   /* Increase touch targets */
-  .icon-btn, .tab, .item-row, .item-check { min-height: 48px; }
+  .icon-btn, .tab, .item-row { min-height: 48px; }
+  .item-check {
+    min-height: 26px;
+    min-width: 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
   .item-row { padding: 14px; }
   /* Floating action button */
   .fab {
