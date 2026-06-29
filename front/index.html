@@ -120,7 +120,118 @@
 <!-- Floating Add button for mobile -->
 <button class="fab" onclick="openPanel()" aria-label="Add item">＋</button>
 
+<!-- SUPABASE_URL -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+let sb = null;
+let items = [];
+let nextId = 1;
+let catFilter  = null;
+let statusFilt = 'all';
+let selEmoji   = '';
+let selPhoto   = '';
+let emojiPage  = 0;
+let initDone   = false;
+
+function mapItem(row) {
+  return {
+    id:        row.id,
+    name:      row.name,
+    amount:    row.amount || '',
+    catId:     row.cat_id || 'other',
+    emoji:     row.emoji || '',
+    done:      row.done || false,
+    createdAt: row.created_at,
+  };
+}
+
+async function loadFromSupabase() {
+  console.log('[DEBUG] SUPABASE_URL:', window.SUPABASE_URL);
+  console.log('[DEBUG] SUPABASE_ANON_KEY:', window.SUPABASE_ANON_KEY ? 'present' : 'missing');
+  if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
+    console.warn('[DEBUG] Missing Supabase credentials - using localStorage');
+    return false;
+  }
+  try {
+    sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    console.log('[DEBUG] Supabase client created');
+    const { data, error } = await sb.from('items').select('*').order('created_at', { ascending: false });
+    console.log('[DEBUG] Select result:', { error, count: data?.length });
+    if (error) throw error;
+    if (data) {
+      items = data.map(mapItem);
+      console.log('[DEBUG] Loaded items:', items.length);
+      if (items.length > 0) nextId = Math.max(...items.map(i => i.id)) + 1;
+      else nextId = 1;
+    }
+    subscribeRealtime();
+    return true;
+  } catch (e) {
+    console.warn('Supabase load failed, using localStorage:', e.message);
+    return false;
+  }
+}
+
+function subscribeRealtime() {
+  if (!sb) return;
+  console.log('[DEBUG] Subscribing to realtime changes...');
+  sb.channel('items-sync')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'items' }, (p) => {
+      console.log('[DEBUG] INSERT event received:', p.new, '| initDone:', initDone);
+      if (initDone) {
+        const newItem = mapItem(p.new);
+        if (!items.find(i => i.id === newItem.id)) {
+          items.unshift(newItem);
+          if (newItem.id >= nextId) nextId = newItem.id + 1;
+          render();
+        }
+      }
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'items' }, (p) => {
+      console.log('[DEBUG] UPDATE event:', p.new);
+      const idx = items.findIndex(i => i.id === p.new.id);
+      if (idx !== -1) {
+        items[idx] = mapItem(p.new);
+        render();
+      }
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'items' }, (p) => {
+      console.log('[DEBUG] DELETE event:', p.old);
+      items = items.filter(i => i.id !== p.old.id);
+      render();
+    })
+    .subscribe((status) => {
+      console.log('[DEBUG] Realtime subscription status:', status);
+    });
+}
+
+async function init() {
+  const ok = await loadFromSupabase();
+  console.log('[DEBUG] init - Supabase loaded:', ok, '| items currently:', items.length);
+  if (!ok) {
+    const stored = JSON.parse(localStorage.getItem('grocery_v2') || 'null');
+    items = stored ? stored.map(item => ({
+      ...item,
+      catId: item.catId || item.cat_id || 'other',
+    })) : DEFAULT_ITEMS.map((item, idx) => ({ ...item, id: idx + 1 }));
+    if (items.length > 0) nextId = Math.max(...items.map(i => i.id)) + 1;
+    else nextId = 1;
+  }
+  items = items.map(item => {
+    const repeat = item.repeat || 'none';
+    const repeatKey = item.repeatKey || (repeat === 'weekly' ? item.weekKey || getWeekKey() : repeat === 'minute' ? item.minuteKey || getMinuteKey() : null);
+    return {
+      ...item,
+      repeat,
+      repeatKey,
+      weekKey: item.weekKey || (repeat === 'weekly' ? repeatKey : null),
+      minuteKey: item.minuteKey || (repeat === 'minute' ? repeatKey : null)
+    };
+  });
+  initDone = true;
+  render();
+}
+
 const CATEGORIES = [
   { id:'fv',    name:'Fruits & Veggies', icon:'🥬', color:'#3f6b2f', bg:'#e3f0dc' },
   { id:'dairy', name:'Dairy',            icon:'🥛', color:'#2d5fa0', bg:'#dae8f8' },
@@ -146,25 +257,6 @@ const DEFAULT_ITEMS = [
   {id:11, name:'Coffee',        amount:'250 g',  catId:'bev',   emoji:'☕', done:false },
   {id:12, name:'Pasta',         amount:'500 g',  catId:'pantry',emoji:'🍝', done:true  },
 ];
-
-let items      = JSON.parse(localStorage.getItem('grocery_v2') || 'null') || DEFAULT_ITEMS;
-items = items.map(item => {
-  const repeat = item.repeat || 'none';
-  const repeatKey = item.repeatKey || (repeat === 'weekly' ? item.weekKey || getWeekKey() : repeat === 'minute' ? item.minuteKey || getMinuteKey() : null);
-  return {
-    ...item,
-    repeat,
-    repeatKey,
-    weekKey: item.weekKey || (repeat === 'weekly' ? repeatKey : null),
-    minuteKey: item.minuteKey || (repeat === 'minute' ? repeatKey : null)
-  };
-});
-let nextId     = Math.max(...items.map(i => i.id), 0) + 1;
-let catFilter  = null;
-let statusFilt = 'all';
-let selEmoji   = '';
-let selPhoto   = '';
-let emojiPage  = 0;
 
 function save() { localStorage.setItem('grocery_v2', JSON.stringify(items)); }
 
@@ -305,14 +397,29 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function toggleItem(id) {
+async function toggleItem(id) {
   const it = items.find(i => i.id === id);
-  if (it) { it.done = !it.done; save(); render(); }
+  if (!it) return;
+  const newDone = !it.done;
+  it.done = newDone;
+  render();
+  if (sb) {
+    const { error } = await sb.from('items').update({ done: newDone }).eq('id', id);
+    if (error) { console.warn('Sync failed:', error.message); save(); }
+  } else {
+    save();
+  }
 }
 
-function deleteItem(id) {
+async function deleteItem(id) {
   items = items.filter(i => i.id !== id);
-  save(); render();
+  render();
+  if (sb) {
+    const { error } = await sb.from('items').delete().eq('id', id);
+    if (error) { console.warn('Sync failed:', error.message); save(); }
+  } else {
+    save();
+  }
 }
 
 // ── Panel ──
@@ -368,7 +475,7 @@ function overlayClick(e) {
   if (e.target === document.getElementById('panel-overlay')) closePanel();
 }
 
-function submitItem() {
+async function submitItem() {
   const name = document.getElementById('panel-name').value.trim();
   if (!name) { document.getElementById('panel-name').focus(); return; }
   const amount = document.getElementById('panel-amount').value.trim();
@@ -377,21 +484,28 @@ function submitItem() {
   const emoji  = selEmoji || CAT_EMOJI[catId] || '🛒';
   const repeatGroup = repeat === 'none' ? null : `repeat-${Date.now()}`;
   const repeatKey = repeat === 'weekly' ? getWeekKey() : repeat === 'minute' ? getMinuteKey() : null;
-  items.unshift({
-    id: nextId++,
+  const newItem = {
     name,
     amount,
-    catId,
+    cat_id: catId,
     emoji,
-    photo: selPhoto || null,
     done: false,
-    repeat,
-    repeatGroup,
-    repeatKey,
-    weekKey: repeat === 'weekly' ? repeatKey : null,
-    minuteKey: repeat === 'minute' ? repeatKey : null
-  });
-  save(); render(); closePanel();
+  };
+  if (sb) {
+    console.log('[DEBUG] Inserting item to Supabase:', newItem);
+    const { data, error } = await sb.from('items').insert([newItem]).select().single();
+    console.log('[DEBUG] Insert result:', { error, data });
+    if (error) { console.warn('Sync failed:', error.message); }
+    if (data) {
+      const mapped = mapItem(data);
+      items.unshift(mapped);
+      if (data.id >= nextId) nextId = data.id + 1;
+    }
+  } else {
+    items.unshift({ id: nextId++, name, amount, catId, emoji, photo: selPhoto || null, done: false, repeat, repeatGroup, repeatKey, weekKey: repeat === 'weekly' ? repeatKey : null, minuteKey: repeat === 'minute' ? repeatKey : null });
+    save();
+  }
+  render(); closePanel();
 }
 
 function promptAddCategory() {
@@ -429,9 +543,22 @@ document.getElementById('search-input').addEventListener('keydown', function(e) 
   }
 });
 
-render();
-setInterval(() => {
+init();
+setInterval(async () => {
   normalizeRecurringItems();
+  // Periodic refresh from Supabase as safety net for missed realtime events
+  if (sb) {
+    const { data } = await sb.from('items').select('*').order('created_at', { ascending: false });
+    if (data) {
+      const newItems = data.map(mapItem);
+      if (JSON.stringify(newItems) !== JSON.stringify(items)) {
+        console.log('[DEBUG] Periodic refresh: items changed, re-rendering');
+        items = newItems;
+        if (items.length > 0) nextId = Math.max(...items.map(i => i.id)) + 1;
+        render();
+      }
+    }
+  }
   render();
 }, 60000);
 </script>
